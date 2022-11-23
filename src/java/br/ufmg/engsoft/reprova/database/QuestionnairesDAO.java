@@ -142,52 +142,8 @@ public class QuestionnairesDAO {
       throw new IllegalArgumentException("questionnaire mustn't be null");
     }
 
-    ArrayList<Document> questions = new ArrayList<Document>();
-    for (var question : questionnaire.questions){
-      Map<String, Object> record = null;
-      if (question.record != null){
-        record = question.record // Convert the keys to string,
-        .entrySet()                                // and values to object.
-        .stream()
-        .collect(
-          Collectors.toMap(
-            e -> e.getKey().toString(),
-            Map.Entry::getValue
-          )
-        );
-      }
-          
-      Document doc = new Document()
-          .append("theme", question.theme)
-          .append("description", question.description)
-          .append("statement", question.statement)
-          .append("record", record == null ? null : new Document(record))
-          .append("pvt", question.pvt);
-      
-      if (Environments.getInstance().getEnableEstimatedTime()){
-        doc = doc.append("estimatedTime", question.estimatedTime);
-      }
-      
-      if (Environments.getInstance().getEnableMultipleChoice()){
-        doc = doc.append("choices", question.getChoices());
-      }
-
-      if (Environments.getInstance().getDifficultyGroup() != 0){
-        doc = doc.append("difficulty", question.difficulty);
-      }
-      
-      questions.add(doc);
-    }
-
-    Document doc = new Document()
-        .append("averageDifficulty", questionnaire.averageDifficulty)
-        .append("questions", questions);
-
-    if (Environments.getInstance().getEnableEstimatedTime()){
-      doc = doc.append("totalEstimatedTime", questionnaire.totalEstimatedTime);
-    }
-    
-    var id = questionnaire.id;
+    Document doc = configureQuestionnaireDocument(questionnaire);
+	var id = questionnaire.id;
     if (id != null) {
       var result = this.collection.replaceOne(
         eq(new ObjectId(id)),
@@ -201,11 +157,41 @@ public class QuestionnairesDAO {
     }
     else
       this.collection.insertOne(doc);
-
     logger.info("Stored questionnaire " + doc.get("_id"));
-
     return true;
   }
+
+
+
+private Document configureQuestionnaireDocument(Questionnaire questionnaire) {
+	ArrayList<Document> questions = new ArrayList<Document>();
+	for (var question : questionnaire.questions) {
+		Map<String, Object> record = null;
+		if (question.record != null) {
+			record = question.record.entrySet().stream()
+					.collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
+		}
+		Document doc = new Document().append("theme", question.theme).append("description", question.description)
+				.append("statement", question.statement).append("record", record == null ? null : new Document(record))
+				.append("pvt", question.pvt);
+		if (Environments.getInstance().getEnableEstimatedTime()) {
+			doc = doc.append("estimatedTime", question.estimatedTime);
+		}
+		if (Environments.getInstance().getEnableMultipleChoice()) {
+			doc = doc.append("choices", question.getChoices());
+		}
+		if (Environments.getInstance().getDifficultyGroup() != 0) {
+			doc = doc.append("difficulty", question.difficulty);
+		}
+		questions.add(doc);
+	}
+	Document doc = new Document().append("averageDifficulty", questionnaire.averageDifficulty).append("questions",
+			questions);
+	if (Environments.getInstance().getEnableEstimatedTime()) {
+		doc = doc.append("totalEstimatedTime", questionnaire.totalEstimatedTime);
+	}
+	return doc;
+}
 
 
   /**

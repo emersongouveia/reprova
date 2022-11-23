@@ -156,37 +156,8 @@ public class QuestionsDAO {
             throw new IllegalArgumentException("question mustn't be null");
         }
 
-        question.calculateDifficulty();
-        Map<String, Object> record = null;
-        if (question.record != null) {
-            record = question.record // Convert the keys to string,
-                    .entrySet() // and values to object.
-                    .stream().collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
-        }
-
-        Document doc = new Document()
-                .append("theme", question.theme)
-                .append("description", question.description)
-                .append("statement", question.statement)
-                .append("record", record == null ? null : new Document(record))
-                .append("pvt", question.pvt);
-
-        if (Environments.getInstance().getEnableEstimatedTime()){
-            doc = doc.append("estimatedTime", question.estimatedTime);
-        }
-
-        if (Environments.getInstance().getDifficultyGroup() != 0){
-            doc = doc.append("difficulty", question.difficulty);
-        }
-        
-        if (Environments.getInstance().getEnableMultipleChoice()) {
-            doc = doc.append("choices", question.getChoices());
-        }
-        if (Environments.getInstance().getEnableQuestionStatistics()) {
-            doc = doc.append("statistics", question.getStatistics());
-        }
-
-        var id = question.id;
+        Document doc = configureDocumentQuestions(question);
+		var id = question.id;
         if (id != null) {
             var result = this.collection.replaceOne(eq(new ObjectId(id)), doc);
 
@@ -197,11 +168,34 @@ public class QuestionsDAO {
         } else {
             this.collection.insertOne(doc);
         }
-
-        logger.info("Stored question " + doc.get("_id"));
-
+		logger.info("Stored question " + doc.get("_id"));
         return true;
     }
+
+	private Document configureDocumentQuestions(Question question) {
+		question.calculateDifficulty();
+		Map<String, Object> record = null;
+		if (question.record != null) {
+			record = question.record.entrySet().stream()
+					.collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
+		}
+		Document doc = new Document().append("theme", question.theme).append("description", question.description)
+				.append("statement", question.statement).append("record", record == null ? null : new Document(record))
+				.append("pvt", question.pvt);
+		if (Environments.getInstance().getEnableEstimatedTime()) {
+			doc = doc.append("estimatedTime", question.estimatedTime);
+		}
+		if (Environments.getInstance().getDifficultyGroup() != 0) {
+			doc = doc.append("difficulty", question.difficulty);
+		}
+		if (Environments.getInstance().getEnableMultipleChoice()) {
+			doc = doc.append("choices", question.getChoices());
+		}
+		if (Environments.getInstance().getEnableQuestionStatistics()) {
+			doc = doc.append("statistics", question.getStatistics());
+		}
+		return doc;
+	}
 
     /**
      * Remove the question with the given id from the collection.
