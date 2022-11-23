@@ -165,24 +165,10 @@ public class QuestionnairesDAO {
 
 private Document configureQuestionnaireDocument(Questionnaire questionnaire) {
 	ArrayList<Document> questions = new ArrayList<Document>();
+	GetDocumentWithQuestionsHandler handler = new GetDocumentWithQuestionsHandler();
+
 	for (var question : questionnaire.questions) {
-		Map<String, Object> record = null;
-		if (question.record != null) {
-			record = question.record.entrySet().stream()
-					.collect(Collectors.toMap(e -> e.getKey().toString(), Map.Entry::getValue));
-		}
-		Document doc = new Document().append("theme", question.theme).append("description", question.description)
-				.append("statement", question.statement).append("record", record == null ? null : new Document(record))
-				.append("pvt", question.pvt);
-		if (Environments.getInstance().getEnableEstimatedTime()) {
-			doc = doc.append("estimatedTime", question.estimatedTime);
-		}
-		if (Environments.getInstance().getEnableMultipleChoice()) {
-			doc = doc.append("choices", question.getChoices());
-		}
-		if (Environments.getInstance().getDifficultyGroup() != 0) {
-			doc = doc.append("difficulty", question.difficulty);
-		}
+		Document doc = handler.configureDocumentQuestions(question);
 		questions.add(doc);
 	}
 	Document doc = new Document().append("averageDifficulty", questionnaire.averageDifficulty).append("questions",
